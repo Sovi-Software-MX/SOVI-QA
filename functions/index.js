@@ -28,3 +28,5 @@ app.post("/auth", async (req, res) => {
 // Exponer la API como una Firebase Function
 exports.api = functions.https.onRequest(app);
 
+//KARENCITA <3
+
