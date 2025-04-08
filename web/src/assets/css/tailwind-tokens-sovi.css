@@ -1,0 +1,42 @@
+/* 🎨 Design Tokens - SOVI */
+
+:root {
+    /* Colors */
+    --color-brand-green: #A8FF65;
+    --color-brand-dark: #4E9E24;
+    --color-brand-black: #000000;
+    --color-brand-gray: #1A202C;
+    --color-brand-light: #F7F7F7;
+    --color-brand-white: #FFFFFF;
+  
+    /* Typography */
+    --font-primary: 'Mulish', sans-serif;
+  
+    /* Font Sizes */
+    --fs-display: 3rem;      /* 48px */
+    --fs-headline: 2.25rem;  /* 36px */
+    --fs-title: 1.5rem;      /* 24px */
+    --fs-subtitle: 1.25rem;  /* 20px */
+    --fs-body: 1rem;         /* 16px */
+    --fs-caption: 0.875rem;  /* 14px */
+    --fs-label: 0.75rem;     /* 12px */
+  
+    /* Font Weights */
+    --fw-light: 300;
+    --fw-regular: 400;
+    --fw-semibold: 600;
+    --fw-bold: 700;
+    --fw-extrabold: 800;
+  }
+  
+  body {
+    font-family: var(--font-primary);
+    color: var(--color-brand-gray);
+    background-color: var(--color-brand-white);
+    line-height: 1.6;
+  }
+  
+  /* Ejemplo de uso: 
+     color: var(--color-brand-green); 
+     font-size: var(--fs-title); */
+  

@@ -1,12 +1,13 @@
+import React from 'react'; // 👈 Esta línea es necesaria
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App.jsx';
-import { AuthProvider } from './context/AuthContext'; // 👈 Importa el AuthProvider
+import { AuthProvider } from './context/AuthContext';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <AuthProvider> {/* 👈 Esto envuelve toda la app */}
+    <AuthProvider>
       <App />
     </AuthProvider>
   </StrictMode>

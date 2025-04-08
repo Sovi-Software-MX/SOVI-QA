@@ -1,3 +1,19 @@
 @tailwind base;
 @tailwind components;
+
+@layer components {
+    .input {
+      @apply border border-brand-green rounded px-4 py-2 text-sm 
+             focus:outline-none focus:ring-2 focus:ring-brand-dark;
+    }
+  }
+
 @tailwind utilities;
+
+@import './assets/css/tailwind-tokens-sovi.css';
+
+body {
+    font-family: 'Mulish', Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
