@@ -24,7 +24,7 @@ export const tailwindTheme = {
         },
         colors: {
           brand: {
-            green: '#A8FF65', // principal
+            green: '#C1FF72', // principal
             dark: '#4E9E24', // hover/acción
             black: '#000000',
             gray: '#1A202C', // texto

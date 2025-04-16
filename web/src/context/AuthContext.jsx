@@ -1,5 +1,4 @@
-// AuthContext.js
-import React from 'react';
+// src/context/AuthContext.jsx
 import { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -14,26 +13,29 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        const docRef = doc(db, 'users', firebaseUser.uid);
-        const docSnap = await getDoc(docRef);
-
+        const userRef = doc(db, 'users', firebaseUser.uid);
+        const docSnap = await getDoc(userRef);
         if (docSnap.exists()) {
           setUser({ uid: firebaseUser.uid, ...docSnap.data() });
         } else {
-          setUser(null);
+          setUser({ uid: firebaseUser.uid, email: firebaseUser.email });
         }
       } else {
         setUser(null);
       }
-
-      // 🔥 Solución: retrasamos ligeramente para evitar redirección prematura
-      setTimeout(() => setLoading(false), 500);
+      setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
-  const logout = () => signOut(auth);
+  const logout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+    }
+  };
 
   return (
     <AuthContext.Provider value={{ user, loading, logout }}>

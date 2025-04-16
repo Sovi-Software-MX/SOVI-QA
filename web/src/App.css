@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import './assets/css/tailwind-tokens-sovi.css';
+
 
 #root {
   max-width: 1280px;
