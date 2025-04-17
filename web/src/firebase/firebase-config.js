@@ -9,15 +9,18 @@ import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
 } from 'firebase/auth';
+
 import {
   getFirestore,
   doc,
   setDoc,
   getDoc,
+  updateDoc,
+  arrayUnion,
+  arrayRemove,
 } from 'firebase/firestore';
 
-// Tu configuración de Firebase (rellena con tus datos)
-
+// ⚠️ Tu configuración real de Firebase debe ir aquí:
 const firebaseConfig = {
   apiKey: "AIzaSyCVyuWVvZZWNLDhAfmEdpH_Hk8VeIEUcus",
   authDomain: "sovi-des-d0245.firebaseapp.com",
@@ -33,6 +36,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
+// Guarda usuario en Firestore si no existe
 const saveUserToFirestore = async (user, additionalData = {}) => {
   const userRef = doc(db, 'users', user.uid);
   const userSnapshot = await getDoc(userRef);
@@ -58,4 +62,7 @@ export {
   RecaptchaVerifier,
   signInWithPhoneNumber,
   saveUserToFirestore,
+  updateDoc,
+  arrayUnion,
+  arrayRemove,
 };

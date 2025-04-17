@@ -1,6 +1,8 @@
 // src/App.jsx
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Entidad from '../pages/Entidad'; // o './components/Entidad' si la dejas ahí
+
 
 // Componente principal de la landing page
 import Landing from './components/Landing';
@@ -31,6 +33,9 @@ function App() {
 
         {/* Para cualquier otra ruta, redirigimos a la Landing */}
         <Route path="*" element={<Navigate to="/" />} />
+
+        <Route path="/entidad" element={<Entidad />} />
+
       </Routes>
     </Router>
   );
