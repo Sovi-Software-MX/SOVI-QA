@@ -1,4 +1,3 @@
-// src/firebase/firebase-config.js
 import { initializeApp } from 'firebase/app';
 import {
   getAuth,
@@ -20,6 +19,13 @@ import {
   arrayRemove,
 } from 'firebase/firestore';
 
+import {
+  getStorage,
+  ref,
+  uploadBytes,
+  getDownloadURL,
+} from 'firebase/storage';
+
 // ⚠️ Tu configuración real de Firebase debe ir aquí:
 const firebaseConfig = {
   apiKey: "AIzaSyCVyuWVvZZWNLDhAfmEdpH_Hk8VeIEUcus",
@@ -34,9 +40,9 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 const googleProvider = new GoogleAuthProvider();
 
-// Guarda usuario en Firestore si no existe
 const saveUserToFirestore = async (user, additionalData = {}) => {
   const userRef = doc(db, 'users', user.uid);
   const userSnapshot = await getDoc(userRef);
@@ -55,6 +61,7 @@ const saveUserToFirestore = async (user, additionalData = {}) => {
 export {
   auth,
   db,
+  storage, // ← agregado
   googleProvider,
   signInWithPopup,
   signInWithEmailAndPassword,
@@ -65,4 +72,7 @@ export {
   updateDoc,
   arrayUnion,
   arrayRemove,
+  ref, // ← agregado
+  uploadBytes, // ← agregado
+  getDownloadURL, // ← agregado
 };

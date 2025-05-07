@@ -1,6 +1,6 @@
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { db, auth } from '../src/firebase/firebase-config';
+import { db, auth, storage } from '../src/firebase/firebase-config';
 import {
   doc,
   getDoc,
@@ -11,14 +11,16 @@ import {
   where,
   getDocs,
 } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { onAuthStateChanged } from 'firebase/auth';
+import VistaEntidad from '../src/components/VistaEntidad';
 
 const Entidad = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const entidadId = searchParams.get('id');
 
-  const [user, setUser] = useState(undefined); // undefined para saber si ya fue evaluado
+  const [user, setUser] = useState(undefined);
   const [entidadData, setEntidadData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [formVisible, setFormVisible] = useState(false);
@@ -31,21 +33,20 @@ const Entidad = () => {
     nombreCampo3: '',
     vigenciaEntidad: '',
   });
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
 
-  // Detectar si hay usuario logueado
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
-      setUser(u ?? null); // null si no está logueado
+      setUser(u ?? null);
     });
     return () => unsubscribe();
   }, []);
 
-  // Verificar entidad y permisos
   useEffect(() => {
     const verificarEntidad = async () => {
       if (!entidadId || user === undefined) return;
 
-      // Si no hay usuario, no hacer nada más
       if (!user) {
         setLoading(false);
         return;
@@ -91,18 +92,35 @@ const Entidad = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    setSelectedFile(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreview(reader.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     const entidadRef = doc(db, 'entidades', entidadId);
+    let bannerUrl = '';
+
+    if (selectedFile) {
+      const storageRef = ref(storage, `banners/${entidadId}/${selectedFile.name}`);
+      await uploadBytes(storageRef, selectedFile);
+      bannerUrl = await getDownloadURL(storageRef);
+    }
+
     await updateDoc(entidadRef, {
       ...formData,
       estatusEntidad: 'AC',
+      bannerUrl,
     });
 
-    setEntidadData((prev) => ({ ...prev, ...formData, estatusEntidad: 'AC' }));
+    setEntidadData((prev) => ({ ...prev, ...formData, estatusEntidad: 'AC', bannerUrl }));
     setFormVisible(false);
-
     window.location.reload();
   };
 
@@ -117,7 +135,6 @@ const Entidad = () => {
     setAutorizacionPendiente(true);
   };
 
-  // Mostrar loader hasta que se evalúe user + entidad + permisos
   if (loading || user === undefined) {
     return (
       <div className="p-6 text-center">
@@ -126,7 +143,6 @@ const Entidad = () => {
     );
   }
 
-  // Usuario no autenticado
   if (!user) {
     return (
       <div className="p-6 text-center">
@@ -142,7 +158,6 @@ const Entidad = () => {
     );
   }
 
-  // Entidad no existe
   if (!entidadData) {
     return (
       <div className="p-4 text-red-600">
@@ -151,7 +166,6 @@ const Entidad = () => {
     );
   }
 
-  // Usuario no autorizado
   if (!autorizado) {
     return (
       <div className="p-6 text-center">
@@ -173,60 +187,96 @@ const Entidad = () => {
 
   return (
     <div className="p-4 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Entidad: {entidadId}</h1>
+      <h1 className="text-2xl font-bold mb-4 text-center mt-4">ID de Entidad: {entidadId}</h1>
 
       {formVisible ? (
-        <form onSubmit={handleSubmit} className="space-y-4 bg-white p-4 rounded shadow">
-          <input
-            name="tpoEntidad"
-            placeholder="Tipo de entidad"
-            value={formData.tpoEntidad}
-            onChange={handleChange}
-            className="border p-2 w-full"
-            required
-          />
-          <input
-            name="nombreCampo1"
-            placeholder="Nombre campo 1"
-            value={formData.nombreCampo1}
-            onChange={handleChange}
-            className="border p-2 w-full"
-            required
-          />
-          <input
-            name="nombreCampo2"
-            placeholder="Nombre campo 2"
-            value={formData.nombreCampo2}
-            onChange={handleChange}
-            className="border p-2 w-full"
-          />
-          <input
-            name="nombreCampo3"
-            placeholder="Nombre campo 3"
-            value={formData.nombreCampo3}
-            onChange={handleChange}
-            className="border p-2 w-full"
-          />
-          <input
-            name="vigenciaEntidad"
-            type="date"
-            value={formData.vigenciaEntidad}
-            onChange={handleChange}
-            className="border p-2 w-full"
-            required
-          />
+        <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-2xl shadow-lg">
+          <h2 className="text-xl font-bold mb-4 text-center">Configura tu entidad</h2>
+
+          <label className="block">
+            <span className="text-sm font-semibold">Tipo de entidad</span>
+            <input
+              name="tpoEntidad"
+              placeholder="Ejemplo: Edificio, Sitio, Automóvil, Mascota"
+              value={formData.tpoEntidad}
+              onChange={handleChange}
+              className="border p-2 w-full rounded mt-1"
+              required
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-semibold">Nombre legal de la entidad</span>
+            <input
+              name="nombreCampo1"
+              placeholder="Ejemplo: Azucarera S.A. de C.V."
+              value={formData.nombreCampo1}
+              onChange={handleChange}
+              className="border p-2 w-full rounded mt-1"
+              required
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-semibold">Ubicación o centro de trabajo</span>
+            <input
+              name="nombreCampo2"
+              placeholder="Ejemplo: Centro Toluca"
+              value={formData.nombreCampo2}
+              onChange={handleChange}
+              className="border p-2 w-full rounded mt-1"
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-semibold">Descripción adicional</span>
+            <input
+              name="nombreCampo3"
+              placeholder="Ejemplo: Subestación Eléctrica A-Tablero"
+              value={formData.nombreCampo3}
+              onChange={handleChange}
+              className="border p-2 w-full rounded mt-1"
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-semibold">Vigencia de la entidad</span>
+            <input
+              name="vigenciaEntidad"
+              type="date"
+              value={formData.vigenciaEntidad}
+              onChange={handleChange}
+              className="border p-2 w-full rounded mt-1"
+              required
+            />
+            <span className="text-xs text-gray-500">Selecciona hasta cuándo estará activa esta entidad.</span>
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-semibold">Imagen</span>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="mt-1"
+            />
+            {imagePreview && (
+              <div className="mt-2">
+                <img src={imagePreview} alt="Preview" className="w-full rounded shadow" />
+              </div>
+            )}
+            <div className="text-xs text-gray-500">Agrega una imagen para identificar visualmente esta entidad.</div>
+          </label>
+
           <button
             type="submit"
-            className="bg-brand-green px-4 py-2 rounded hover:bg-green-700"
+            className="bg-brand-green w-full px-4 py-2 rounded font-semibold  hover:bg-green-700"
           >
             Guardar entidad
           </button>
         </form>
       ) : (
-        <div className="bg-gray-100 p-4 rounded">
-          <h2 className="font-semibold mb-2">Datos registrados:</h2>
-          <pre className="whitespace-pre-wrap text-sm">{JSON.stringify(entidadData, null, 2)}</pre>
-        </div>
+        <VistaEntidad entidadId={entidadId} user={user} />
       )}
     </div>
   );
