@@ -149,11 +149,16 @@ const Entidad = () => {
         <h2 className="text-2xl font-semibold text-red-600 mb-2">Acceso restringido</h2>
         <p className="mb-4">Necesitas iniciar sesión para acceder a esta entidad.</p>
         <button
-          onClick={() => navigate('/login')}
-          className="bg-brand-green px-4 py-2 rounded"
-        >
-          Ir a login
-        </button>
+  onClick={() =>
+    navigate('/login', {
+      state: { from: `/entidad?id=${entidadId}` }
+    })
+  }
+  className="bg-brand-green px-4 py-2 rounded"
+>
+  Ir a login
+</button>
+
       </div>
     );
   }

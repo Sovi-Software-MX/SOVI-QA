@@ -8,37 +8,66 @@ import {
   createUserWithEmailAndPassword,
   saveUserToFirestore,
 } from '../../firebase/firebase-config';
-import { sendPasswordResetEmail, sendEmailVerification } from 'firebase/auth';
+import {
+  sendPasswordResetEmail,
+  sendEmailVerification,
+  confirmPasswordReset,
+} from 'firebase/auth';
+
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const Login = () => {
-  const [view, setView] = useState('login'); // 'login' | 'register' | 'reset'
+  const [view, setView] = useState('login'); // 'login' | 'register' | 'reset' | 'confirmReset'
   const [form, setForm] = useState({
     email: '',
     password: '',
     confirmPassword: '',
     firstName: '',
     lastName: '',
+    oobCode: '',
   });
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [redirectCountdown, setRedirectCountdown] = useState(null);
 
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    if (!authLoading && user) {
-      navigate('/panel');
-    }
-    // Si en la URL viene mode=reset, muestra la vista de reset
     const params = new URLSearchParams(location.search);
-    if (params.get('mode') === 'reset') {
+    const mode = params.get('mode');
+    const oobCode = params.get('oobCode');
+
+    if (!authLoading && user) {
+      const from = location.state?.from;
+      navigate(from || '/panel');      
+    }
+
+    if (mode === 'reset') {
       setView('reset');
     }
+
+    if (mode === 'resetPassword' && oobCode) {
+      setForm((prev) => ({ ...prev, oobCode }));
+      setView('confirmReset');
+    }
   }, [user, authLoading, navigate, location]);
+
+  useEffect(() => {
+    if (redirectCountdown === null) return;
+    if (redirectCountdown === 0) {
+      setView('login');
+      setRedirectCountdown(null);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setRedirectCountdown((prev) => prev - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [redirectCountdown]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -52,7 +81,8 @@ const Login = () => {
     try {
       const result = await signInWithEmailAndPassword(auth, form.email, form.password);
       await saveUserToFirestore(result.user);
-      navigate('/panel');
+      const from = location.state?.from;
+      navigate(from || '/panel');
     } catch {
       setError('Correo o contraseña incorrectos.');
     } finally {
@@ -69,7 +99,8 @@ const Login = () => {
       const displayName = result.user.displayName || '';
       const [firstName = '', lastName = ''] = displayName.split(' ');
       await saveUserToFirestore(result.user, { firstName, lastName });
-      window.location.href = '/panel';
+      const from = location.state?.from;
+      navigate(from || '/panel');
     } catch (err) {
       console.error(err);
       setError('Error al iniciar sesión con Google.');
@@ -77,6 +108,7 @@ const Login = () => {
       setLoading(false);
     }
   };
+  
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -114,6 +146,27 @@ const Login = () => {
       setStatus('Revisa tu correo para restablecer la contraseña.');
     } catch {
       setError('No se pudo enviar el correo. Verifica el email.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmReset = async (e) => {
+    e.preventDefault();
+    setError('');
+    setStatus('');
+    if (form.password !== form.confirmPassword) {
+      setError('Las contraseñas no coinciden');
+      return;
+    }
+    try {
+      setLoading(true);
+      await confirmPasswordReset(auth, form.oobCode, form.password);
+      setStatus('¡Contraseña actualizada con éxito! Serás redirigido al login en 5 segundos...');
+      setRedirectCountdown(5);
+    } catch (err) {
+      console.error(err);
+      setError('No se pudo actualizar la contraseña. El enlace puede haber expirado o ya fue usado.');
     } finally {
       setLoading(false);
     }
@@ -178,6 +231,50 @@ const Login = () => {
             </form>
             <div className="text-sm text-center mt-4">
               <button onClick={() => setView('login')} className="text-brand-green underline">Volver a iniciar sesión</button>
+            </div>
+          </>
+        )}
+
+        {view === 'confirmReset' && (
+          <>
+            <h1 className="text-2xl font-bold text-center">Establecer nueva contraseña</h1>
+            {status && (
+              <p className="text-green-600 text-center">
+                {status} {redirectCountdown !== null && `(${redirectCountdown}s)`}
+              </p>
+            )}
+            {error && <p className="text-red-500 text-center">{error}</p>}
+            <form onSubmit={handleConfirmReset} className="space-y-4">
+              <input
+                name="password"
+                type="password"
+                required
+                placeholder="Nueva contraseña"
+                value={form.password}
+                onChange={handleChange}
+                className="w-full p-2 border rounded"
+              />
+              <input
+                name="confirmPassword"
+                type="password"
+                required
+                placeholder="Confirmar nueva contraseña"
+                value={form.confirmPassword}
+                onChange={handleChange}
+                className="w-full p-2 border rounded"
+              />
+              <button
+                type="submit"
+                className="w-full bg-brand-green text-black py-2 rounded disabled:opacity-50"
+                disabled={loading}
+              >
+                {loading ? 'Actualizando...' : 'Guardar nueva contraseña'}
+              </button>
+            </form>
+            <div className="text-sm text-center mt-4">
+              <button onClick={() => setView('login')} className="text-brand-green underline">
+                Volver al login
+              </button>
             </div>
           </>
         )}
