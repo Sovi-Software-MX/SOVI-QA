@@ -1,7 +1,10 @@
+// src/components/Entidad.jsx
+
 import { useEffect, useState } from 'react';
 import { db } from '../firebase/firebase-config';
 import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { FileEdit, Trash2, Info, Check } from 'lucide-react';
+
 
 const VistaEntidad = ({ entidadId, user }) => {
   const [entidadData, setEntidadData] = useState(null);
