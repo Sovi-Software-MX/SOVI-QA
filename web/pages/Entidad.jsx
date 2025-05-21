@@ -11,6 +11,7 @@ import {
   query,
   where,
   getDocs,
+  deleteDoc,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -47,7 +48,7 @@ const Entidad = () => {
     return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
+ useEffect(() => {
     const verificarEntidad = async () => {
       if (!entidadId || user === undefined) return;
 
@@ -69,32 +70,49 @@ const Entidad = () => {
       setEntidadData(data);
 
       const autorizacionRef = doc(collection(entidadRef, 'autorizacion'), user.uid);
-      const autorizacionSnap = await getDoc(autorizacionRef);
+      let autorizacionSnap = null;
+
+      try {
+        autorizacionSnap = await getDoc(autorizacionRef);
+      } catch (err) {
+        console.error('Error verificando permisos:', err);
+      }
 
       if (data.estatusEntidad === 'NN') {
         setFormVisible(true);
-
         await setDoc(autorizacionRef, {
           idEntidad: entidadId,
           idUsuario: user.uid,
-          email: user.email,
           permiso: 'admin',
+          email: user.email,
           fechaExpira: new Date('2999-12-31'),
         });
-
         setRolUsuario('admin');
         setAutorizado(true);
-        setLoading(false);
-        return;
       } else {
-        if (autorizacionSnap.exists()) {
+        if (autorizacionSnap && autorizacionSnap.exists()) {
           const datosAutorizacion = autorizacionSnap.data();
           setRolUsuario(datosAutorizacion.permiso || null);
           setAutorizado(true);
         } else {
+          const solicitudRef = doc(db, 'solicitudes', `${entidadId}_${user.uid}`);
+          const solicitudSnap = await getDoc(solicitudRef);
+
+          if (solicitudSnap.exists()) {
+            const estadoSolicitud = solicitudSnap.data().estado;
+
+            if (estadoSolicitud === 'pendiente') {
+              setAutorizacionPendiente(true);
+            } else if (estadoSolicitud === 'rechazado') {
+              setAutorizacionPendiente(false);
+            } else {
+              setAutorizacionPendiente(false);
+            }
+          } else {
+            setAutorizacionPendiente(false);
+          }
+
           setAutorizado(false);
-          setLoading(false);
-          return;
         }
       }
 
@@ -145,40 +163,36 @@ const Entidad = () => {
     window.location.reload();
   };
 
-const solicitarAcceso = async () => {
-  const solicitudRef = doc(db, 'solicitudes', `${entidadId}_${user.uid}`);
-  const solicitudSnap = await getDoc(solicitudRef);
+  const solicitarAcceso = async () => {
+    const solicitudRef = doc(db, 'solicitudes', `${entidadId}_${user.uid}`);
+    const solicitudSnap = await getDoc(solicitudRef);
 
-  if (solicitudSnap.exists()) {
-    const data = solicitudSnap.data();
-
-    if (data.estado === 'pendiente') {
-      setAutorizacionPendiente(true);
-      return;
+    if (solicitudSnap.exists()) {
+      const data = solicitudSnap.data();
+      if (data.estado === 'pendiente') {
+        setAutorizacionPendiente(true);
+        return;
+      } else if (data.estado === 'rechazado') {
+        console.log('🔁 Reenviando solicitud rechazada...');
+        await updateDoc(solicitudRef, {
+          estado: 'pendiente',
+          solicitadaEn: new Date(),
+        });
+        setAutorizacionPendiente(true);
+        return;
+      }
     }
 
-    if (data.estado === 'aprobado') {
-      setAutorizado(true);
-      return;
-    }
+    await setDoc(solicitudRef, {
+      idEntidad: entidadId,
+      idUsuario: user.uid,
+      email: user.email,
+      solicitadaEn: new Date(),
+      estado: 'pendiente',
+    });
 
-    if (data.estado === 'rechazado') {
-      console.log('🔁 Reenviando solicitud rechazada...');
-      // continúa para sobrescribir abajo
-    }
-  }
-
-  await setDoc(solicitudRef, {
-    idEntidad: entidadId,
-    idUsuario: user.uid,
-    email: user.email,
-    solicitadaEn: new Date(),
-    estado: 'pendiente',
-  });
-
-  setAutorizacionPendiente(true);
-};
-
+    setAutorizacionPendiente(true);
+  };
 
   if (loading || user === undefined) {
     return (
