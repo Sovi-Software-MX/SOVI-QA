@@ -28,13 +28,12 @@ import {
 
 // ⚠️ Tu configuración real de Firebase debe ir aquí:
 const firebaseConfig = {
-  apiKey: "AIzaSyCVyuWVvZZWNLDhAfmEdpH_Hk8VeIEUcus",
-  authDomain: "sovi-des-d0245.firebaseapp.com",
-  projectId: "sovi-des-d0245",
-  storageBucket: "sovi-des-d0245.firebasestorage.app",
-  messagingSenderId: "540643364304",
-  appId: "1:540643364304:web:2e511e95605575e0007dd5",
-  measurementId: "G-0Y7Z9YNZTJ"
+  apiKey: "AIzaSyBBk3F6f9rq4DxSPDCaE06fogqNQuK7zgY",
+  authDomain: "sovi-qualityassesment.firebaseapp.com",
+  projectId: "sovi-qualityassesment",
+  storageBucket: "sovi-qualityassesment.firebasestorage.app",
+  messagingSenderId: "467464591557",
+  appId: "1:467464591557:web:5c096e21a9fb4194bcf8ac"
 };
 
 const app = initializeApp(firebaseConfig);
